@@ -240,6 +240,21 @@ def measure_second_correlation(plant_df, plant_header, plate_df, plate_header):
 	# We have to_return = [(plant_plateau_df, plant_header), (plate_plateau_df, plate_header)]
 	return measure_correlation(to_return[0][0], to_return[0][1], to_return[1][0], to_return[1][1])
 
+def get_correct_init_temp(corr_sig, sig, window):
+	corr_sig_moving_averages = corr_sig.rolling(window).mean()
+	deviations = corr_sig - corr_sig_moving_averages
+	init_temp = sig - deviations
+	plt.plot(corr_sig_moving_averages, label='corrected moving average')
+	plt.plot(corr_sig, label='corrected module temperature')
+	plt.plot(sig, label='original module temperature')
+	plt.plot(init_temp, label='calculated initial module temperature')
+	plt.xlabel('Time')
+	plt.ylabel('Temperature')
+	plt.title('Correcting initial module temperature')
+	plt.legend()
+	plt.xticks(rotation=45)
+	plt.show()
+	print(f"init temp: {init_temp}")
 
 # def correcting_final_temp(noisy_filename1, noisy_header1, signal_filename2, signal_header2):
 # TODO: need to use the corr_sig to correct the actual signal - subtract the deviations of corr_sig from sig
@@ -262,22 +277,24 @@ def correcting_init_temp(noisy_file_df, noisy_header1, signal_file_df, signal_he
 	sig = cut_signal[signal_header2]
 	sig_noise = cut_noise[noisy_header1]
 
-	noise_moving_averages = find_moving_average(cut_noise, noisy_header1, '1T')
+	noise_moving_averages = find_moving_average(cut_noise, noisy_header1, '3T')
 	noise_deviations = sig_noise - noise_moving_averages
-	signal_moving_averages = find_moving_average(cut_signal, signal_header2, '1T')
+	signal_moving_averages = find_moving_average(cut_signal, signal_header2, '3T')
 	signal_deviations = sig - signal_moving_averages
 
 	amplitude_scale_factor = np.max(noise_deviations)/np.max(signal_deviations)
 	average_scale_factor = np.mean(noise_deviations)/np.mean(signal_deviations)
 	# amplitude_scale_factor = np.mean(plant_deviations/plate_deviations)
-	print(f"amplitude scale factor: {amplitude_scale_factor}")
-	print(f"average scale factor: {average_scale_factor}")
+	# print(f"amplitude scale factor: {amplitude_scale_factor}")
+	# print(f"average scale factor: {average_scale_factor}")
 	
-	translation = np.mean(noise_moving_averages - signal_moving_averages)
-	print(f"translation: {translation}")
+	# translation = np.mean(noise_moving_averages - signal_moving_averages)
+	# print(f"translation: {translation}")
 
 	corr_sig = sig - (noise_deviations/amplitude_scale_factor)
 	corr_sig_avg = sig - (noise_deviations/average_scale_factor)
+
+	# get_correct_init_temp(corr_sig, sig, '10T')
 
 	# plt.plot(sig, label='signal temperature')
 	# plt.plot(sig_noise, label='noise temperature')
@@ -306,7 +323,7 @@ def find_step_avg_temp(plate_df, plate_header, module_df, module_header, supply_
 	# plt.plot(x, y)
 	# plt.xlabel("Time")
 	# plt.ylabel("Temperature")
-	# plt.title("Zoomed temperature steps of module with heater on")
+	# plt.title("Zoomed temperature steps of module with falling temperature")
 	# plt.legend()
 	# plt.show()
 
@@ -332,7 +349,9 @@ def find_step_avg_temp(plate_df, plate_header, module_df, module_header, supply_
 		
 		print(times[i], grad)
 		
-		if (grad < 0) and (next_grad > 0):
+		if ((grad < 0) and (next_grad > 0)):
+			init_step_idx = i
+		elif ((grad > 0) and (next_grad < 0)):
 			final_step_idx = i
 			avg_temp = np.average(temperatures[init_step_idx:final_step_idx])
 			# avg_time = np.average(times[init_step_idx:final_step_idx].astype(float))
@@ -353,13 +372,23 @@ def read_power_from_elog(elog_filename):
 		reader = csv.DictReader(csvfile)
 		for row in reader:
 			if ((row['Current'] != '') and (row['Voltage'] != '') and (row['Time'] != '')):
-				power = float(row['Current']) * float(row['Voltage'])
+				power = float(row['Current']) * float(row['Voltage']) / 24
 				time = datetime.strptime(row['Time'], "%Y/%m/%d %H:%M:%S.%f")
 			# time = row['Time']
-			power_times.append({'Time': time, 'Power': power})
+				power_times.append({'Time': time, 'Power': power})
 	
-	print(f"Power and time: {power_times}")
-	return power_times
+	power_time = pd.DataFrame.from_dict(power_times)
+	power_time['Time'] = pd.to_datetime(power_time['Time'])
+	power_time.set_index('Time', inplace=True)
+	sampling_rate = '10S'  
+	resampled_power_time = power_time.resample(sampling_rate).mean().interpolate()
+	print(f"Resampled Power and time: {resampled_power_time}")
+	plt.title("Power (interpolated and resampled) vs time")
+	plt.xlabel("Time")
+	plt.ylabel('Power (W)')
+	plt.plot(resampled_power_time)
+	plt.show()
+	return resampled_power_time
 
 
 # datetime_lst here is a list of dictionaries with key 'Time'
@@ -385,21 +414,22 @@ def compare_temp_power_dependencies(plate_df, plate_header, plant_df, plant_head
 	temps = []
 	powers = []
 
-	corr_sig = correcting_init_temp(plant_df, plant_header, module_df, module_header, THRESHOLD)
-	init_temp = np.mean(corr_sig)
+	# corr_sig = correcting_init_temp(plant_df, plant_header, module_df, module_header, THRESHOLD)
+	# init_temp = np.mean(corr_sig)
 	# print(init_temp)
 
 	# get closest time_power to the time_temp and then compare them - if they have the same minute
 	for i in range(len(time_powers)):
-		time_stamp_power = (time_powers[i])['Time']
+		time_stamp_power = (time_powers.index)[i]
 		for j in range(len(time_temps)-1):
 			time_stamp_temp_1 = (time_temps[j])['Time']
 			time_stamp_temp_2 = (time_temps[j+1])['Time']
 			# find the closest time 
-			if (time_stamp_power >= time_stamp_temp_1) and (time_stamp_power <= time_stamp_temp_2):
-				dt = init_temp - (time_temps[j])['Average Temperature']
+			# if (time_stamp_power >= time_stamp_temp_1) and (time_stamp_power <= time_stamp_temp_2):
+			if (time_stamp_power == time_stamp_temp_1):
+				dt = (time_temps[j])['Average Temperature'] 
 				temps.append(dt)
-				powers.append((time_powers[i])['Power'])
+				powers.append((time_powers['Power'])[i])
 	
 	temps_powers = (temps, powers)
 
@@ -412,7 +442,7 @@ def plot_temp_power_dependencies(temps_powers):
 
 	plt.plot(x_axis, y_axis)
 	plt.title('Temperature of Module vs Power')
-	plt.xlabel('Temperature Difference (ºC)')
+	plt.xlabel('Temperature (ºC)')
 	plt.ylabel('Power (W)')
 	plt.show()
 
@@ -466,16 +496,17 @@ if __name__ == '__main__':
 	
 	
 	# we want to find the module's falling arc, which happens in its intersection with the tray's function
-	# step_mean_temps = find_step_avg_temp(plate_df, TRAY_PLATE_HEADER, module_df, MODULE_HEADER, supply_df, CO2_SUPPLY_HEADER)
-	# step_mean_temps = pd.DataFrame(step_mean_temps)
-	# x = step_mean_temps['Time']
-	# y = step_mean_temps['Average Temperature']
-	# plt.plot(x, y)
-	# plt.xlabel("Time")
-	# plt.ylabel("Average Temperature")
-	# plt.title("Average temperatures calculated for each step of module")
-	# plt.legend()
-	# plt.show()
+	step_mean_temps = find_step_avg_temp(plate_df, TRAY_PLATE_HEADER, module_df, MODULE_HEADER, supply_df, CO2_SUPPLY_HEADER)
+	step_mean_temps = pd.DataFrame(step_mean_temps)
+	x = step_mean_temps['Time']
+	y = step_mean_temps['Average Temperature']
+	plt.plot(x, y)
+	plt.xlabel("Time")
+	plt.ylabel("Average Temperature")
+	plt.title("Average temperatures calculated for each step of module")
+	plt.legend()
+	plt.xticks(rotation=45)
+	plt.show()
 
 	temps_powers = compare_temp_power_dependencies(plate_df, TRAY_PLATE_HEADER, plant_df, CO2_PLANT_HEADER, module_df, MODULE_HEADER, supply_df, CO2_SUPPLY_HEADER, ELOG_FILENAME)
 	plot_temp_power_dependencies(temps_powers)
@@ -536,5 +567,3 @@ if __name__ == '__main__':
 	# plt.legend()
 	# plt.xticks(rotation=45)
 	# plt.show()
-
-
