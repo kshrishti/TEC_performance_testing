@@ -1238,6 +1238,7 @@ temps_powers, step_start_ends):
 	axs[0].legend()
 	axs[0].set_title('Temperatures over time')
 	axs[0].set_xticklabels(axs[0].get_xticklabels(), rotation=45)
+	axs[0].minorticks_on()
 
 	print(dts_module_init)
 	print(powers)
@@ -1250,7 +1251,7 @@ temps_powers, step_start_ends):
 	axs[1].set_title('∆T vs TEC Power')
 	axs[1].legend()
 	axs[1].grid()
-	plt.minorticks_on()
+	axs[1].minorticks_on()
 	plt.show()
 
 	dts_df = pd.DataFrame({
@@ -1358,23 +1359,23 @@ temps_powers, step_start_ends):
 		dt_module = mod_temp - init_mod_temp
 		dts_module_init.append(dt_module)
 
-		# To plot the corrected temperature at each step, uncomment this block of code
-		plt.scatter(step_start_ends[0], module_fn[step_start_ends[0]], label='step starts')
-		plt.scatter(step_start_ends[1], module_fn[step_start_ends[1]], label='step ends')
-		plt.plot(step_module_temps, label='Actual module temp')
-		plt.plot(step_plate_temps, label='Actual plate temp')
-		plt.plot(step_cu_housing_temps, label='Actual Cu housing temp')
-		plt.axhline(y=mod_temp, label='Linear module temp', color='red')
-		plt.axhline(y=plate_temp, label='Linear plate temp', color='black')
-		plt.axhline(y=cu_temp, label='Linear Cu housing temp', color='yellow')
-		plt.plot(module_fn, label='module', color='orange')
-		plt.plot(plate_fn, label='plate', color='blue')
-		plt.plot(cu_housing_fn, label='cu housing', color='green')
-		plt.xlabel('Sample')
-		plt.ylabel('Temperature (ºC)')
-		plt.legend()
-		plt.minorticks_on()
-		plt.show()
+		# # To plot the corrected temperature at each step, uncomment this block of code
+		# plt.scatter(step_start_ends[0], module_fn[step_start_ends[0]], label='step starts')
+		# plt.scatter(step_start_ends[1], module_fn[step_start_ends[1]], label='step ends')
+		# plt.plot(step_module_temps, label='Actual module temp')
+		# plt.plot(step_plate_temps, label='Actual plate temp')
+		# plt.plot(step_cu_housing_temps, label='Actual Cu housing temp')
+		# plt.axhline(y=mod_temp, label='Linear module temp', color='red')
+		# plt.axhline(y=plate_temp, label='Linear plate temp', color='black')
+		# plt.axhline(y=cu_temp, label='Linear Cu housing temp', color='yellow')
+		# plt.plot(module_fn, label='module', color='orange')
+		# plt.plot(plate_fn, label='plate', color='blue')
+		# plt.plot(cu_housing_fn, label='cu housing', color='green')
+		# plt.xlabel('Sample')
+		# plt.ylabel('Temperature (ºC)')
+		# plt.legend()
+		# plt.minorticks_on()
+		# plt.show()
 	
 	normalised_dts_cu = np.array(dts_cu) - mod_cu_normalisation
 	normalised_dts_plate = np.array(dts_plate) - mod_plate_normalisation
@@ -1400,7 +1401,8 @@ temps_powers, step_start_ends):
 	axs[0].set_ylabel('Temperature (ºC)')
 	axs[0].legend()
 	axs[0].set_title('Temperatures over time')
-	axs[0].set_xticklabels(axs[0].get_xticks(), rotation = 45)
+	axs[0].set_xticklabels(axs[0].get_xticklabels(), rotation = 45)
+	axs[0].minorticks_on()
 
 
 	axs[1].plot(dts_module_init, powers, label='∆T (wrt initial module T)', color='orange', marker='o')
@@ -1411,7 +1413,7 @@ temps_powers, step_start_ends):
 	axs[1].set_title('∆T vs TEC Power')
 	axs[1].legend()
 	axs[1].grid()
-	plt.minorticks_on()
+	axs[1].minorticks_on()
 	plt.show()
 
 	return round(dts_df, 2)
@@ -1637,6 +1639,7 @@ def plot_temp_power_dependencies(temps_powers):
 	axs[0].set_xlabel('Temperature (ºC)')
 	axs[0].set_ylabel('TEC Power (mW)')
 	axs[0].grid()
+	axs[0].minorticks_on()
 	
 	dT = np.array([x_axis[i] - x_axis[0] for i in range(len(x_axis))])
 	axs[1].plot(dT, y_axis, color='red', marker='o')
@@ -1644,7 +1647,7 @@ def plot_temp_power_dependencies(temps_powers):
 	axs[1].set_xlabel('dT (ºC)')
 	axs[1].set_ylabel('TEC Power (mW)')
 	axs[1].grid()
-	plt.minorticks_on()
+	axs[1].minorticks_on()
 	plt.show()
 
 
@@ -2142,6 +2145,7 @@ def predicted_kfit(dts_df, elog_filename, qc=0.480, rac_cu=None, rac_plate=None)
 	axs[0].set_xlabel('∆T (K)')
 	axs[0].legend()
 	axs[0].grid()
+	axs[0].minorticks_on()
 
 	axs[1].plot(k_fit_plate, power, label='wrt plate', marker='o')
 	axs[1].plot(k_fit_cu, power, label='wrt Cu housing', marker='s')
@@ -2151,7 +2155,7 @@ def predicted_kfit(dts_df, elog_filename, qc=0.480, rac_cu=None, rac_plate=None)
 	axs[1].set_title('TEC Power vs K_fit')
 	axs[1].legend()
 	axs[1].grid()
-	plt.minorticks_on()
+	axs[1].minorticks_on()
 	plt.show()
 
 
@@ -2431,15 +2435,15 @@ if __name__ == '__main__':
 	# for date_str in DATE_DICT.keys():
 
 # else choose a particular date
-		date_str = 'AUG_02'
+		date_str = 'AUG_10'
 		date = DATE_DICT[date_str]
 
 		# # Format all the dataframes you need
 		plate_df = reformat_df(date['TRAY_PLATE_FILENAME'], date['TRAY_PLATE_HEADER'])
 		module_df = reformat_df(date['MODULE_FILENAME'], date['MODULE_HEADER'])
 		cu_housing_df = reformat_df(date['CU_HOUSING_FILENAME'], date['CU_HOUSING_HEADER'])
-		lyso_df = reformat_df(date['LYSO_FILENAME'], date['LYSO_HEADER'])
-		t_inf_df = reformat_df(date['AMBIENT_FILENAME'], date['AMBIENT_HEADER'])
+		# lyso_df = reformat_df(date['LYSO_FILENAME'], date['LYSO_HEADER'])
+		# t_inf_df = reformat_df(date['AMBIENT_FILENAME'], date['AMBIENT_HEADER'])
 		# supply_df = reformat_df(date['CO2_SUPPLY_FILENAME'], date['CO2_SUPPLY_HEADER'])
 		# plant_df = reformat_df(date['CO2_PLANT_FILENAME'], date['CO2_PLANT_HEADER'])
 		
@@ -2447,8 +2451,8 @@ if __name__ == '__main__':
 		# # Edit the DF list as relevant/necessary based on what you need - but make sure all of the DFs
 		# you are making above start and end at the same time
 
-		df_list = same_time_frame([plate_df, module_df, cu_housing_df, lyso_df, t_inf_df])
-		plate_df, module_df, cu_housing_df, lyso_df, t_inf_df = df_list
+		df_list = same_time_frame([plate_df, module_df, cu_housing_df])
+		plate_df, module_df, cu_housing_df = df_list
 		
 
 		# # If you want to plot all the DFs you have
@@ -2461,23 +2465,23 @@ if __name__ == '__main__':
 		
 
 		# # Do this entire block together
-		step_mean_temps, errors, step_start_ends = find_step_avg_temp2(module_df, date['MODULE_HEADER'], FALL_THRESHOLD, RISE_THRESHOLD, 1)
-		temps_powers, errors = compare_temp_power_dependencies_2(module_df, date['MODULE_HEADER'], date['ELOG_FILENAME'], 1)
+		step_mean_temps, errors, step_start_ends = find_step_avg_temp2(module_df, date['MODULE_HEADER'], FALL_THRESHOLD, RISE_THRESHOLD, 0)
+		temps_powers, errors = compare_temp_power_dependencies_2(module_df, date['MODULE_HEADER'], date['ELOG_FILENAME'], 0)
 		plot_temp_power_dependencies(temps_powers)
 			# for a cooling cycle
-		dts_df = find_dt_power_cooling(cu_housing_df, date['CU_HOUSING_HEADER'], plate_df, date['TRAY_PLATE_HEADER'], module_df, date['MODULE_HEADER'], temps_powers, step_start_ends)
+		# dts_df = find_dt_power_cooling(cu_housing_df, date['CU_HOUSING_HEADER'], plate_df, date['TRAY_PLATE_HEADER'], module_df, date['MODULE_HEADER'], temps_powers, step_start_ends)
 			# for an annealing cycle
-		# dts_df = find_dt_power_heating(cu_housing_df, date['CU_HOUSING_HEADER'], plate_df, date['TRAY_PLATE_HEADER'], module_df, date['MODULE_HEADER'], temps_powers, step_start_ends)
-		# print(dts_df)
+		dts_df = find_dt_power_heating(cu_housing_df, date['CU_HOUSING_HEADER'], plate_df, date['TRAY_PLATE_HEADER'], module_df, date['MODULE_HEADER'], temps_powers, step_start_ends)
+		print(dts_df)
 
 
 		# # For theory exploration
-		rac_df_cu = predicted_rac_values(dts_df, date['ELOG_FILENAME'], 1)
-		actual_rac_cu = rac_df_cu['actual_rac'].to_numpy()
-		rac_df_plate = predicted_rac_values(dts_df, date['ELOG_FILENAME'], 0)
-		actual_rac_plate = rac_df_plate['actual_rac'].to_numpy()
-		# qc = -0.484 is specifically for Aug 2 test - update as necesssary
-		print(better_predicted_kfit(dts_df, date['ELOG_FILENAME'], lyso_df, date['LYSO_HEADER'], t_inf_df, date['AMBIENT_HEADER'], step_start_ends, qc=-0.484, rac_cu=actual_rac_cu, rac_plate=actual_rac_plate))
+		# rac_df_cu = predicted_rac_values(dts_df, date['ELOG_FILENAME'], 1)
+		# actual_rac_cu = rac_df_cu['actual_rac'].to_numpy()
+		# rac_df_plate = predicted_rac_values(dts_df, date['ELOG_FILENAME'], 0)
+		# actual_rac_plate = rac_df_plate['actual_rac'].to_numpy()
+		# # qc = -0.484 is specifically for Aug 2 test - update as necesssary
+		# print(better_predicted_kfit(dts_df, date['ELOG_FILENAME'], lyso_df, date['LYSO_HEADER'], t_inf_df, date['AMBIENT_HEADER'], step_start_ends, qc=-0.484, rac_cu=actual_rac_cu, rac_plate=actual_rac_plate))
 
 # -----------------------------------------------
 # # NOW IRRELEVANT
