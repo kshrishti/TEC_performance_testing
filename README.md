@@ -10,12 +10,9 @@ You will also need an elog CSV file from that day's data collection, which conta
 
 
 Important channels: their channel mapping ('their header in the  MTRS-generated CSV file')
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
-1. Module (I used J20 primarily): 18-0-2 ('cms_mtdtf_dcs_1:MTRS/MTD_TIF_18/Chip_0/Channel_2.actual.value')
+-------------------------------------
+1. Module [I used J20 primarily]: 18-0-2 ('cms_mtdtf_dcs_1:MTRS/MTD_TIF_18/Chip_0/Channel_2.actual.value')
 2. Cu housing: 33-0-2 ('cms_mtdtf_dcs_1:MTRS/MTD_TIF_33/Chip_0/Channel_2.actual.value')
 3. Cold plate: 34-1-0 ('cms_mtdtf_dcs_1:MTRS/MTD_TIF_34/Chip_1/Channel_0.actual.value')
 4. LYSO: 33-1-3 ('cms_mtdtf_dcs_1:MTRS/MTD_TIF_33/Chip_1/Channel_3.actual.value')
 5. Ambient temperature sensor: 33-2-0 ('cms_mtdtf_dcs_1:MTRS/MTD_TIF_33/Chip_2/Channel_0.actual.value')
-	
-
-
