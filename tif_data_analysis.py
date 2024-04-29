@@ -170,26 +170,26 @@ class Data:
 			# independent heating cycle - blocks don't need to be uncommented
 
 
-"""
-Returns mapping of a channel according to MTRS convention. 
-
-Arguments: header (str) - header of the csv file that corresponds to a channel mapping on the MTRS
-							e.g. 'cms_mtdtf_dcs_1:MTRS/MTD_TIF_34/Chip_1/Channel_0.actual.value'
-Returns: mapping (str) - channel mapping for the header
-							e.g. 34-1-0
-"""
 def get_mapping_from_header(header):
+	"""
+	Returns mapping of a channel according to MTRS convention. 
+	
+	Arguments: header (str) - header of the csv file that corresponds to a channel mapping on the MTRS
+								e.g. 'cms_mtdtf_dcs_1:MTRS/MTD_TIF_34/Chip_1/Channel_0.actual.value'
+	Returns: mapping (str) - channel mapping for the header
+								e.g. 34-1-0
+	"""
 	mapping_pattern = 'cms_mtdtf_dcs_1:MTRS/MTD_TIF_(\d+)/Chip_(\d+)/Channel_(\d+).actual.value'
 	match = re.search(mapping_pattern, header)
 	return f'{match.group(1)}-{match.group(2)}-{match.group(3)}'
 
 
-"""
-Plots the temperatures of multiple sensors that are inputted as Dataframes. 
-
-Arguments: df_list (list) - list of all the Dataframes that need to be plotted 
-"""
 def plot_everything(df_list, labels):
+	"""
+	Plots the temperatures of multiple sensors that are inputted as Dataframes. 
+	
+	Arguments: df_list (list) - list of all the Dataframes that need to be plotted 
+	"""
 	for i in range(len(df_list)):
 		plt.plot(df_list[i].index, df_list[i].iloc[:,0].to_numpy(), label=labels[i])
 	plt.xlabel('Time')
@@ -202,18 +202,18 @@ def plot_everything(df_list, labels):
 	plt.show()
 
 
-"""
-Reformats a csv file by resampling and interpolating the temperatures, and also formatting the timestamps 
-as datetime objects. 
-
-Arguments: 
-	filename (str) - csv filename
-	temp_header (str) - header of the channel that needs to be reformatted as a DataFrame
-Returns:
-	resampled_df (DataFrame) - resampled and interpolated temperatures, with index as timestamps
-								and no NaN values
-"""
 def reformat_df(filename, temp_header):
+	"""
+	Reformats a csv file by resampling and interpolating the temperatures, and also formatting the timestamps 
+	as datetime objects. 
+	
+	Arguments: 
+		filename (str) - csv filename
+		temp_header (str) - header of the channel that needs to be reformatted as a DataFrame
+	Returns:
+		resampled_df (DataFrame) - resampled and interpolated temperatures, with index as timestamps
+									and no NaN values
+	"""
 	df = pd.read_csv(filename)
 
 	temps = df[temp_header].to_numpy()
@@ -234,18 +234,18 @@ def reformat_df(filename, temp_header):
 	return resampled_df
 
 
-"""
-Uses a convolved function of a sinusoidal function and a linear trend line to get a more accurate
-functional fitting of the temperature fluctuations.
-
-Arguments: 
-	function (np array) - the temperatures that are the function to be fitted
-	period bounds (tuple) - a predicted range for the period with min, max
-Returns: 
-	popt (= amp, period, translation, phi, m, k) - the amplitude, period, translation, phase shift, 
-													slope and linear translation of the convolution
-"""
 def approximate_signal(function, period_bounds):
+	"""
+	Uses a convolved function of a sinusoidal function and a linear trend line to get a more accurate
+	functional fitting of the temperature fluctuations.
+	
+	Arguments: 
+		function (np array) - the temperatures that are the function to be fitted
+		period bounds (tuple) - a predicted range for the period with min, max
+	Returns: 
+		popt (= amp, period, translation, phi, m, k) - the amplitude, period, translation, phase shift, 
+														slope and linear translation of the convolution
+	"""
 	xs = np.arange(len(function))
 	min_max = np.array([tup for tup in zip([0, 100], period_bounds, [-50, 0], [15, 50], [0, 1], [-1000, 100])])
 	popt, pcov = curve_fit(convolved_function, np.arange(len(function)), function, maxfev=2000, bounds=min_max)
@@ -269,50 +269,52 @@ def approximate_signal(function, period_bounds):
 	return popt
 
 
-"""
-Gives a linearised signal for a function with oscillatory behaviour. 
-
-Arguments:
-	popt (amp, period, translation, phi, m, k) - outputted from approximate_signal()
-	function (array-like) - the values of the function
-Returns:
-	(array) - a new linearised function that is modelled as m*x + k + translation
-"""
 def approximate_linear_signal(popt, function):
+	"""
+	Gives a linearised signal for a function with oscillatory behaviour. 
+	
+	Arguments:
+		popt (amp, period, translation, phi, m, k) - outputted from approximate_signal()
+		function (array-like) - the values of the function
+	Returns:
+		(array) - a new linearised function that is modelled as m*x + k + translation
+	"""
 	x = np.arange(len(function))
 	return popt[4] * x + popt[5] + popt[2]
 
 
-"""
-Creates a a sinusoidal function.
-
-Arguments: x-values (times), amplitude, period, translation and phase shift
-Returns: array of sin function
-"""
-def sin_curve(times, amp, period, translation, phi):
+def sin_curve(times, amp, period, translation, phi):	
+	"""
+	Creates a a sinusoidal function.
+	
+	Arguments: x-values (times), amplitude, period, translation and phase shift
+	Returns: array of sin function
+	"""
 	return (amp * np.sin(2 * np.pi/period * (times - phi)) + translation)
 
 
-"""
-Creates a convolution of a sinusoidal function and linear trend line.
-
-Arguments: x-values, amplitude, period, translation and phase shift
-Returns: array of convolution
-"""
-def convolved_function(x, amp, period, translation, phi, m, k):
+def convolved_function(x, amp, period, translation, phi, m, k):	
+	"""
+	Creates a convolution of a sinusoidal function and linear trend line.
+	
+	Arguments: x-values, amplitude, period, translation and phase shift
+	Returns: array of convolution
+	"""
 	sinusoidal = amp * np.sin(2 * np.pi/period * (x - phi)) + translation
 	general_rise = m * x + k
 	return sinusoidal + general_rise
 
 
 CU_TEMPS_FILENAME = 'Cu_housing_temps.csv'
-"""
-Compares the Cu housing temperatures from multiple sensors to see correlations between hotspots and locations
-of sensors. Plots the temperatures on a graph. 
 
-Arguments: cu_housing_filename (str) - CSV file containing the data from all Cu housing sensors
-"""
+
 def cu_housing_comparison(cu_housing_filename):
+	"""
+	Compares the Cu housing temperatures from multiple sensors to see correlations between hotspots and locations
+	of sensors. Plots the temperatures on a graph. 
+	
+	Arguments: cu_housing_filename (str) - CSV file containing the data from all Cu housing sensors
+	"""
 	df = pd.read_csv(cu_housing_filename)
 	for column_header in list(df.columns)[1:]:
 		column_df = reformat_df(cu_housing_filename, column_header)
@@ -331,19 +333,19 @@ def cu_housing_comparison(cu_housing_filename):
 	plt.show()
 
 
-"""
-Finds the index at which the function in the DataFrame begins to rise above a set threshold; 
-used to find when the SiPMs are turned on, or to find the start of the TEC annealing cycle. 
-
-Arguments: 
-	df (DataFrame) - contains function being scanned
-	temp_header (str) - header of the df that contains the function to be scanned (channel name)
-	threshold (int) - min temp difference that would be considered a "rise" in temperature
-Returns:
-	rise_idx (int) - index of function at which the rise occurs
-	-1 if no rise found
-"""
-def find_rise_idx(df, temp_header, threshold):
+def find_rise_idx(df, temp_header, threshold):	
+	"""
+	Finds the index at which the function in the DataFrame begins to rise above a set threshold; 
+	used to find when the SiPMs are turned on, or to find the start of the TEC annealing cycle. 
+	
+	Arguments: 
+		df (DataFrame) - contains function being scanned
+		temp_header (str) - header of the df that contains the function to be scanned (channel name)
+		threshold (int) - min temp difference that would be considered a "rise" in temperature
+	Returns:
+		rise_idx (int) - index of function at which the rise occurs
+		-1 if no rise found
+	"""
 	temps = df[temp_header].values
 	rise_index = -1
 
@@ -359,19 +361,19 @@ def find_rise_idx(df, temp_header, threshold):
 		return -1
 
 
-"""
-Finds the index at which the function in the DataFrame begins to fall below a set threshold; 
-used to find when the cooling cycle of the TECs starts. 
-
-Arguments: 
-	df (DataFrame) - contains function being scanned
-	temp_header (str) - header of the df that contains the function to be scanned (channel name)
-	threshold (int) - min temp difference that would be considered a "rise" in temperature
-Returns:
-	rise_idx (int) - index of function at which the rise occurs
-	-1 if no rise found
-"""
 def find_fall_idx(df, temp_header, threshold):
+	"""
+	Finds the index at which the function in the DataFrame begins to fall below a set threshold; 
+	used to find when the cooling cycle of the TECs starts. 
+	
+	Arguments: 
+		df (DataFrame) - contains function being scanned
+		temp_header (str) - header of the df that contains the function to be scanned (channel name)
+		threshold (int) - min temp difference that would be considered a "rise" in temperature
+	Returns:
+		rise_idx (int) - index of function at which the rise occurs
+		-1 if no rise found
+	"""
 	temps = df[temp_header]
 	fall_index = -1
 
@@ -387,17 +389,17 @@ def find_fall_idx(df, temp_header, threshold):
 		return -1
 
 
-"""
-Finds oscillation frequency of plant and plate temperatures, especially for erratic functions (like the CO2
-plant). Instead of using sinusoidal approximation, uses the difference in timings between peaks. 
-
-Arguments: DataFrame and relevant header for the temperature function. 
-Returns: 
-	oscillation_period (int) - approximate period of oscillation
-	peak_indices (list) - list of indices at which the function peaks
-	trough_indices (list) - list of indices at which the function has troughs
-"""
-def find_oscillation_freq(df, temp_header):
+def find_oscillation_freq(df, temp_header):	
+	"""
+	Finds oscillation frequency of plant and plate temperatures, especially for erratic functions (like the CO2
+	plant). Instead of using sinusoidal approximation, uses the difference in timings between peaks. 
+	
+	Arguments: DataFrame and relevant header for the temperature function. 
+	Returns: 
+		oscillation_period (int) - approximate period of oscillation
+		peak_indices (list) - list of indices at which the function peaks
+		trough_indices (list) - list of indices at which the function has troughs
+	"""
 	temps = df[temp_header]
 
 	new_times = (df.index).to_numpy()
@@ -430,15 +432,15 @@ def find_oscillation_freq(df, temp_header):
 	return oscillation_period, peak_indices, trough_indices
 
 
-"""
-Ensures 2 DataFrames start and end at the same timestamp so they can be compared. 
-Redundant function because same_time_frame() exists, but could be more efficient if wanted to reformat only
-2 DataFrames. 
-
-Arguments: 2 DataFrames
-Returns: 2 reformatted DataFrames
-"""
 def start_end_same_timestamp(df1, df2):
+	"""
+	Ensures 2 DataFrames start and end at the same timestamp so they can be compared. 
+	Redundant function because same_time_frame() exists, but could be more efficient if wanted to reformat only
+	2 DataFrames. 
+	
+	Arguments: 2 DataFrames
+	Returns: 2 reformatted DataFrames
+	"""
     common_start = max(df1.index.min(), df2.index.min())
     common_end = min(df1.index.max(), df2.index.max())
 
@@ -448,39 +450,39 @@ def start_end_same_timestamp(df1, df2):
     return df1_new, df2_new
 
 
-"""
-Ensures a list of DataFrames start and end at the same timestamp so they can be compared. 
-
-Arguments: a list of DataFrames
-Returns: a list of DataFrames
-"""
-def same_time_frame(df_list):
+def same_time_frame(df_list):	
+	"""
+	Ensures a list of DataFrames start and end at the same timestamp so they can be compared. 
+	
+	Arguments: a list of DataFrames
+	Returns: a list of DataFrames
+	"""
 	common_start = max(df.index.min() for df in df_list)
 	common_end = min(df.index.max() for df in df_list)
 	df_list_new = [df.loc[common_start:common_end] for df in df_list]
 	return df_list_new
 
 
-"""
-Finds the moving average of a function (a header in a DataFrame) with a given window size.
-
-Arguments:
-	df (DataFrame)
-	header (str)
-	window (str) - follows rolling(window) conventions for pandas e.g. '1T' or '30s'
-Returns:
-	moving_averages (array)
-"""
 def find_moving_average(df, header, window):
+	"""
+	Finds the moving average of a function (a header in a DataFrame) with a given window size.
+	
+	Arguments:
+		df (DataFrame)
+		header (str)
+		window (str) - follows rolling(window) conventions for pandas e.g. '1T' or '30s'
+	Returns:
+		moving_averages (array)
+	"""
 	moving_averages = df[header].rolling(window).mean()
 	return np.array(moving_averages)
 
 
-"""
-Find indexes of points of intersections of the supply function and the plate function (another [but less
-reliable] way to identify when the TECs are turned on).
-"""
-def find_intersection_indices(supply_df, supply_header, plate_df, plate_header):
+def find_intersection_indices(supply_df, supply_header, plate_df, plate_header):	
+	"""
+	Find indices of points of intersections of the supply function and the plate function (another [but less
+	reliable] way to identify when the TECs are turned on).
+	"""
 	plate_temps = plate_df[plate_header].to_numpy()
 	supply_temps = supply_df[supply_header]
 
@@ -496,16 +498,16 @@ def find_intersection_indices(supply_df, supply_header, plate_df, plate_header):
 	return intersection_start_indices, intersection_end_indices
 
 
-"""
-DEFUNCT - use correcting_out_oscillations() instead
-First attempt at correcting the temperature. 
-
-Arguments: cut_noise and cut_signal mean the DataFrames only include the points that need to be corrected out
-			(flat parts of the function).
-Returns: 
-	deviations from corrected signal, deviations from original signal, approx. translation of sinusoidal function
-"""
 def correcting_temp(cut_noise, noisy_header, cut_signal, signal_header):
+	"""
+	DEFUNCT - use correcting_out_oscillations() instead
+	First attempt at correcting the temperature. 
+	
+	Arguments: cut_noise and cut_signal mean the DataFrames only include the points that need to be corrected out
+				(flat parts of the function).
+	Returns: 
+		deviations from corrected signal, deviations from original signal, approx. translation of sinusoidal function
+	"""
 	sig = cut_signal[signal_header]
 	sig_noise = cut_noise[noisy_header]
 
@@ -541,14 +543,14 @@ def correcting_temp(cut_noise, noisy_header, cut_signal, signal_header):
 	return corr_new_devs, new_devs, signal_translation
 
 
-"""
-Updated way to correct out oscillations. 
-
-Arguments: signal and noise functions, string date of test (used in DATE_DICT to get information).
-Returns: 
-	deviations from corrected signal, deviations from original signal, corrected signal
-"""
-def correcting_out_oscillations(sig_fn, noise_fn, date_str):
+def correcting_out_oscillations(sig_fn, noise_fn, date_str):	
+	"""
+	Updated way to correct out oscillations. 
+	
+	Arguments: signal and noise functions, string date of test (used in DATE_DICT to get information).
+	Returns: 
+		deviations from corrected signal, deviations from original signal, corrected signal
+	"""
 	sig_popt = approximate_signal(sig_fn, DATE_DICT[date_str]['PERIOD_BOUNDS'])
 	noise_popt = approximate_signal(noise_fn, DATE_DICT[date_str]['PERIOD_BOUNDS'])
 
@@ -612,27 +614,27 @@ def correcting_out_oscillations(sig_fn, noise_fn, date_str):
 	return new_corr_devs, new_devs, corr_sig
 	
 
-"""
-Locates the segment before SiPM or TEC power is injected, and approximates the initial temperature from that. 
-Uses the corr_sig from correcting_out_oscillations() to correct the actual signal - subtracts the deviations 
-of corr_sig from the actual signal function. 
-
-Arguments:
-	noisy_file_df (DF) - DataFrame for noise function (usually taken to be the plate)
-	noisy_header1 - header for plate
-	signal_file_df - DataFrame for signal (usually taken to be the module)
-	signal_header2 - module header
-	signal_rise_threshold - threshold for signal rise to be detected
-	signal_fall_threshold - threshold for signal fall to be detected
-	date_str - string of date (used in DATE_DICT to get more information)
-
-Returns:
-	mean initial temperature (float)
-	error (int) - error associated with the initial temperature (max corrected dev - min corrected dev)/2
-	min_idx (int) - the index of the rise or fall, whose result depends on whether SiPMs were turned on 
-					before or after the TECs. 
-"""
-def correcting_init_temp(noisy_file_df, noisy_header1, signal_file_df, signal_header2, signal_rise_threshold, signal_fall_threshold, date_str):
+def correcting_init_temp(noisy_file_df, noisy_header1, signal_file_df, signal_header2, signal_rise_threshold, signal_fall_threshold, date_str):	
+	"""
+	Locates the segment before SiPM or TEC power is injected, and approximates the initial temperature from that. 
+	Uses the corr_sig from correcting_out_oscillations() to correct the actual signal - subtracts the deviations 
+	of corr_sig from the actual signal function. 
+	
+	Arguments:
+		noisy_file_df (DF) - DataFrame for noise function (usually taken to be the plate)
+		noisy_header1 - header for plate
+		signal_file_df - DataFrame for signal (usually taken to be the module)
+		signal_header2 - module header
+		signal_rise_threshold - threshold for signal rise to be detected
+		signal_fall_threshold - threshold for signal fall to be detected
+		date_str - string of date (used in DATE_DICT to get more information)
+	
+	Returns:
+		mean initial temperature (float)
+		error (int) - error associated with the initial temperature (max corrected dev - min corrected dev)/2
+		min_idx (int) - the index of the rise or fall, whose result depends on whether SiPMs were turned on 
+						before or after the TECs. 
+	"""
 	df1 = noisy_file_df
 	df2 = signal_file_df
 	rise_idx = find_rise_idx(df2, signal_header2, signal_rise_threshold)
@@ -690,11 +692,11 @@ def correcting_init_temp(noisy_file_df, noisy_header1, signal_file_df, signal_he
 	return np.mean(alt_corr_sig), error, min_idx
 
 
-"""
-DEFUNCT
-To find the best windox size to use in a rolling mean of the temperature functions. 
-"""
-def scanning_for_window_size(noisy_file_df, noisy_header1, signal_file_df, signal_header2, noise_rise_threshold, signal_rise_threshold):
+def scanning_for_window_size(noisy_file_df, noisy_header1, signal_file_df, signal_header2, noise_rise_threshold, signal_rise_threshold):	
+	"""
+	DEFUNCT
+	To find the best windox size to use in a rolling mean of the temperature functions. 
+	"""
 	df1 = noisy_file_df
 	df2 = signal_file_df
 	rise_idx_1 = find_rise_idx(df1, noisy_header1, noise_rise_threshold)
@@ -782,19 +784,19 @@ def scanning_for_window_size(noisy_file_df, noisy_header1, signal_file_df, signa
 	return best_window, improvement
 	
 
-"""
-Calculates the power per SiPM array (4 TECs) for an inputted elog filename. Number of modules are gotten
-from the ELOG_MODULES dictionary. 
-
-Arguments: elog_filename (str) - filename of the CSV file with the elog with headers 'Time', 'Current' 
-									and 'Voltage'
-
-Returns:
-	resampled_power_time (DF) - timestamps as index column, TEC powers are resampled to reflect 
-								continuous power supply
-	power_time (DF) - timestamps as index column, TEC powers are other column
-"""
-def read_power_from_elog(elog_filename):
+def read_power_from_elog(elog_filename):	
+	"""
+	Calculates the power per SiPM array (4 TECs) for an inputted elog filename. Number of modules are gotten
+	from the ELOG_MODULES dictionary. 
+	
+	Arguments: elog_filename (str) - filename of the CSV file with the elog with headers 'Time', 'Current' 
+										and 'Voltage'
+	
+	Returns:
+		resampled_power_time (DF) - timestamps as index column, TEC powers are resampled to reflect 
+									continuous power supply
+		power_time (DF) - timestamps as index column, TEC powers are other column
+	"""
 	num_modules = ELOG_MODULES[elog_filename]
 	power_times = []
 	with open(elog_filename, encoding='utf-8-sig') as csvfile:
@@ -829,10 +831,10 @@ def read_power_from_elog(elog_filename):
 	return resampled_power_time, power_time
 
 
-"""
-Returns total current (as a list) from the elog file (CSV) at each TEC power step. 
-"""
 def read_current_from_elog(elog_filename):
+	"""
+	Returns total current (as a list) from the elog file (CSV) at each TEC power step. 
+	"""
 	currents = []
 	with open(elog_filename, encoding='utf-8-sig') as csvfile:
 		reader = csv.DictReader(csvfile)
@@ -843,10 +845,10 @@ def read_current_from_elog(elog_filename):
 	return currents
 
 
-"""
-Returns total voltage (as a list) from the elog file (CSV) at each TEC power step. 
-"""
-def read_voltage_from_elog(elog_filename):
+def read_voltage_from_elog(elog_filename):	
+	"""
+	Returns total voltage (as a list) from the elog file (CSV) at each TEC power step. 
+	"""
 	voltages = []
 	with open(elog_filename, encoding='utf-8-sig') as csvfile:
 		reader = csv.DictReader(csvfile)
@@ -857,21 +859,21 @@ def read_voltage_from_elog(elog_filename):
 	return voltages
 
 
-"""
-DEFUNCT - Use find_step_avg_temp2() instead. 
-Finds the average temperatures for each step of TEC power. 
-
-Arguments:
-	plate_df and plate_header - for cold plate temperatures
-	module_df and module_header - for module temperatures
-	supply_df and supply_header - for CO2 inlet temperature 
-
-Returns:
-	1. a list of dicts with 'Time' and 'Average Temperature' keys
-	2. an array of the uncertainties in the average
-	3. a tuple of the (step start indices, step end indices)
-"""
 def find_step_avg_temp(plate_df, plate_header, module_df, module_header, supply_df, supply_header, elog_filename):
+	"""
+	DEFUNCT - Use find_step_avg_temp2() instead. 
+	Finds the average temperatures for each step of TEC power. 
+	
+	Arguments:
+		plate_df and plate_header - for cold plate temperatures
+		module_df and module_header - for module temperatures
+		supply_df and supply_header - for CO2 inlet temperature 
+	
+	Returns:
+		1. a list of dicts with 'Time' and 'Average Temperature' keys
+		2. an array of the uncertainties in the average
+		3. a tuple of the (step start indices, step end indices)
+	"""
 	start_indices, end_indices = find_intersection_indices(supply_df, supply_header, plate_df, plate_header)
 
 	start_idx, end_idx = start_indices[-1], end_indices[-1]
@@ -967,25 +969,25 @@ def find_step_avg_temp(plate_df, plate_header, module_df, module_header, supply_
 	return step_mean_temps, np.array(errors), (start_idx + np.array(step_start_indices), start_idx + np.array(step_end_indices))
 
 
-"""
-Finds the average temperatures for each step of TEC power. 
-There are two implementations that can be toggled with the cooling_bool - 
-	for the TEC cooling cycle (where fall comes before the rise), or
-	the TEC annealing cycle (where the rise comes before the fall) 
-		- however, it should be noted that if SiPMs are turned on before the TECs in the annealing cycle, 
-		that could be detected as the first rise - the code should then be corrected to take the second rise in temperature
-The average temperature is calculated by taking the mean of all the temperatures in the step. 
-
-Arguments:
-	module_df and module_header - for module temperatures
-	fall_threshold/rise_threshold (int) - what temperature difference counts as a TEC step fall/rise
-	cooling_bool (bool) - if True, cooling cycle; if False, heating cycle
-Returns:
-	1. step_mean_temps (list) - a list of dicts with 'Time' and 'Average Temperature' keys
-	2. an array of the uncertainties in the average
-	3. a tuple of the (step start indices, step end indices)
-"""
-def find_step_avg_temp2(module_df, module_header, fall_threshold, rise_threshold, cooling_bool):
+def find_step_avg_temp2(module_df, module_header, fall_threshold, rise_threshold, cooling_bool):	
+	"""
+	Finds the average temperatures for each step of TEC power. 
+	There are two implementations that can be toggled with the cooling_bool - 
+		for the TEC cooling cycle (where fall comes before the rise), or
+		the TEC annealing cycle (where the rise comes before the fall) 
+			- however, it should be noted that if SiPMs are turned on before the TECs in the annealing cycle, 
+			that could be detected as the first rise - the code should then be corrected to take the second rise in temperature
+	The average temperature is calculated by taking the mean of all the temperatures in the step. 
+	
+	Arguments:
+		module_df and module_header - for module temperatures
+		fall_threshold/rise_threshold (int) - what temperature difference counts as a TEC step fall/rise
+		cooling_bool (bool) - if True, cooling cycle; if False, heating cycle
+	Returns:
+		1. step_mean_temps (list) - a list of dicts with 'Time' and 'Average Temperature' keys
+		2. an array of the uncertainties in the average
+		3. a tuple of the (step start indices, step end indices)
+	"""
 	# for TEC cooling cycle - fall comes before rise
 	if cooling_bool:
 		fall_idx = find_fall_idx(module_df, module_header, fall_threshold)
@@ -1101,34 +1103,34 @@ def find_step_avg_temp2(module_df, module_header, fall_threshold, rise_threshold
 	return step_mean_temps, np.array(errors), step_start_ends
 
 
-"""
-Finds the deltaT versus TEC power (per SiPM array) for the steps in a TEC cooling cycle. The deltaT is calculated 
-with respect to Cu housing and the cold plate (normalised to account for the initial disparity as well). 
-
-There are two options to calculate the dT - 
-a) taking the step temperature as its linearised form and then using the mean of that for the difference
-b) just taking the mean step temperature and using that for the difference
-
-Mean (b) is usually slightly more accurate, and also if we manage to fix the oscillations from the plant then that 
-should be used.  
-
-Arguments:
-	cu_housing_df and cu_housing_header - for the Cu housing temperature
-	plate_df and plate_header - for the cold plate
-	module_df and module_header - for the module
-	temps_powers (DF) - output of compare_temp_power_dependencies_2(), which has a column of TEC powers as
-						the index and mean temperatures at that power as a column
-	step_start_ends (tuple) - step start indices, step end indices
-
-Returns: a DF of dt and powers with module temperature, plate temperature, Cu housing temperature, 
-		dT wrt initial module temperature, Cu housing, cold plate, normalised wrt Cu housing and 
-		normalised wrt cold plate for each TEC power step. 
-	dts_df (DF) - 
-		index = powers
-		'mod_temps','plate_temps','cu_housing_temps','wrt_mod','wrt_cu','wrt_plate','wrt_cu_normalised','wrt_plate_normalised'
-"""
 def find_dt_power_cooling(cu_housing_df, cu_housing_header, plate_df, plate_header, module_df, module_header, 
-temps_powers, step_start_ends):
+temps_powers, step_start_ends):	
+	"""
+	Finds the deltaT versus TEC power (per SiPM array) for the steps in a TEC cooling cycle. The deltaT is calculated 
+	with respect to Cu housing and the cold plate (normalised to account for the initial disparity as well). 
+	
+	There are two options to calculate the dT - 
+	a) taking the step temperature as its linearised form and then using the mean of that for the difference
+	b) just taking the mean step temperature and using that for the difference
+	
+	Mean (b) is usually slightly more accurate, and also if we manage to fix the oscillations from the plant then that 
+	should be used.  
+	
+	Arguments:
+		cu_housing_df and cu_housing_header - for the Cu housing temperature
+		plate_df and plate_header - for the cold plate
+		module_df and module_header - for the module
+		temps_powers (DF) - output of compare_temp_power_dependencies_2(), which has a column of TEC powers as
+							the index and mean temperatures at that power as a column
+		step_start_ends (tuple) - step start indices, step end indices
+	
+	Returns: a DF of dt and powers with module temperature, plate temperature, Cu housing temperature, 
+			dT wrt initial module temperature, Cu housing, cold plate, normalised wrt Cu housing and 
+			normalised wrt cold plate for each TEC power step. 
+		dts_df (DF) - 
+			index = powers
+			'mod_temps','plate_temps','cu_housing_temps','wrt_mod','wrt_cu','wrt_plate','wrt_cu_normalised','wrt_plate_normalised'
+	"""
 	start_indices, end_indices = step_start_ends
 
 	# in case there's extraneous steps detected at the end because other changes happened at the end
@@ -1268,15 +1270,16 @@ temps_powers, step_start_ends):
 
 	return round(dts_df, 2)
 
-"""
-Same as find_dt_power_cooling() but for the annealing case. 
 
-NOTE: this may have to be re-examined when we have standalone annealing cycles (not taking place after a cooling 
-cycle), where the first detected step isn't the initial temperature, but is the first step. Then it will become
-more like find_dt_power_cooling(). 
-"""
 def find_dt_power_heating(cu_housing_df, cu_housing_header, plate_df, plate_header, module_df, module_header, 
 temps_powers, step_start_ends):
+	"""
+	Same as find_dt_power_cooling() but for the annealing case. 
+	
+	NOTE: this may have to be re-examined when we have standalone annealing cycles (not taking place after a cooling 
+	cycle), where the first detected step isn't the initial temperature, but is the first step. Then it will become
+	more like find_dt_power_cooling(). 
+	"""
 	start_indices, end_indices = step_start_ends
 
 	# in case there's extraneous steps detected at the end because other changes happened at the end
@@ -1419,13 +1422,13 @@ temps_powers, step_start_ends):
 	return round(dts_df, 2)
 
 
-"""
-DEFUNCT
-when the heaters are turned on, i.e., plant temperature becomes less than the tray temperature, 
-find a different correlation & correction
-assumes the dfs are reformatted already, and start at the same point
-"""
 def measure_second_correlation(sig, sig_header, sig_noise, sig_noise_header, step_start_indices, step_end_indices):
+	"""
+	DEFUNCT
+	when the heaters are turned on, i.e., plant temperature becomes less than the tray temperature, 
+	find a different correlation & correction
+	assumes the dfs are reformatted already, and start at the same point
+	"""
 	# corrections = []
 	# for i in range(len(step_start_indices)):
 	# 	step_sig_df = sig.iloc[step_start_indices[i]:step_end_indices[i]]
@@ -1467,17 +1470,17 @@ def measure_second_correlation(sig, sig_header, sig_noise, sig_noise_header, ste
 	return corrections
 
 
-"""
-Defines an exponential decay fit with equation y = a * e ^{-b * xs} + c
-"""
-def exponential_fit(xs, a, b, c):
+def exponential_fit(xs, a, b, c):	
+	"""
+	Defines an exponential decay fit with equation y = a * e ^{-b * xs} + c
+	"""
 	return a * np.exp(-b * xs) + c
 
 
-"""
-Fits the temperature vs TEC power graph to different decay functions. 
-"""
 def fit_temps_powers(temps_powers, errors):
+	"""
+	Fits the temperature vs TEC power graph to different decay functions. 
+	"""
 	xs, ys = temps_powers
 	xs, ys = np.array(xs), np.array(ys)
 	# EXPONENTIAL DECAY
@@ -1515,11 +1518,11 @@ def fit_temps_powers(temps_powers, errors):
 	plt.show()
 
 
-"""
-DEFUNCT 
-Converts datetime formats to only time (removes date), returns a list of dictionaries with key 'Time'
-"""
 def convert_datetime_to_onlytime(datetime_lst):
+	"""
+	DEFUNCT 
+	Converts datetime formats to only time (removes date), returns a list of dictionaries with key 'Time'
+	"""
 	fixed_lst = []
 	for i in range(len(datetime_lst)):
 		time = (datetime_lst[i])['Time']
@@ -1532,11 +1535,11 @@ def convert_datetime_to_onlytime(datetime_lst):
 	return fixed_lst
 
 
-"""
-DEFUNCT - use compare_temp_power_dependencies_2() instead. 
-Compares the module temperature vs TEC power
-"""
 def compare_temp_power_dependencies(plate_df, plate_header, plant_df, plant_header, module_df, module_header, supply_df, supply_header, elog_filename):
+	"""
+	DEFUNCT - use compare_temp_power_dependencies_2() instead. 
+	Compares the module temperature vs TEC power
+	"""
 	time_powers, not_interpolated_time_powers = read_power_from_elog(elog_filename)
 	# time_temps, errors, (starts, ends) = find_step_avg_temp(plate_df, plate_header, module_df, module_header, supply_df, supply_header)
 	# print(f"Time powers: {time_powers}")
@@ -1577,25 +1580,25 @@ def compare_temp_power_dependencies(plate_df, plate_header, plant_df, plant_head
 	return temps_powers, errors
 
 
-"""
-Compares the module temperature to the TEC power at that step. 
-a) for standalone heating cycles, because the initial temperature is also detected as a step and so we currently discount
-that - if you want to count the first detection as a step, comment block 1 
-b) if other tests are done (like adding/removing insulation), which introduces inconsistencies in the 
-	temperature similar to a step, then there may be trailing steps detected, so comment the second 
-	block of code if you don't want to account for that. 
-
-Arguments:
-	module_df and module_header - for the module temperature
-	elog_filename (str) - elog for that day's powers
-	cooling_bool (bool) - True if cooling cycle, False if heating cycle
-
-Returns: 
-	temp_power_df (DF) - DataFrame with power as index and avg temperature at that TEC step as column, 
-						rounded to 2 decimal points
-	errors (array) - error bars associated with each step temperature
-"""
 def compare_temp_power_dependencies_2(module_df, module_header, elog_filename, cooling_bool):
+	"""
+	Compares the module temperature to the TEC power at that step. 
+	a) for standalone heating cycles, because the initial temperature is also detected as a step and so we currently discount
+	that - if you want to count the first detection as a step, comment block 1 
+	b) if other tests are done (like adding/removing insulation), which introduces inconsistencies in the 
+		temperature similar to a step, then there may be trailing steps detected, so comment the second 
+		block of code if you don't want to account for that. 
+	
+	Arguments:
+		module_df and module_header - for the module temperature
+		elog_filename (str) - elog for that day's powers
+		cooling_bool (bool) - True if cooling cycle, False if heating cycle
+	
+	Returns: 
+		temp_power_df (DF) - DataFrame with power as index and avg temperature at that TEC step as column, 
+							rounded to 2 decimal points
+		errors (array) - error bars associated with each step temperature
+	"""
 	time_powers, not_interpolated_time_powers = read_power_from_elog(elog_filename)
 	time_temps, errors, (starts, ends) = find_step_avg_temp2(module_df, module_header, FALL_THRESHOLD, RISE_THRESHOLD, cooling_bool)
 
@@ -1619,13 +1622,13 @@ def compare_temp_power_dependencies_2(module_df, module_header, elog_filename, c
 	return round(temp_power_df, 2), errors
 
 
-"""
-Plots the step temperature vs power and dT vs power. 
-Uncomment the block of code to get a smoother curve with a spline. 
-
-Arguments: temps_powers (DF) - power as index and temperature as column
-"""
-def plot_temp_power_dependencies(temps_powers):
+def plot_temp_power_dependencies(temps_powers):	
+	"""
+	Plots the step temperature vs power and dT vs power. 
+	Uncomment the block of code to get a smoother curve with a spline. 
+	
+	Arguments: temps_powers (DF) - power as index and temperature as column
+	"""
 	fig, axs = plt.subplots(1, 2)
 	x_axis, y_axis = temps_powers.index.to_numpy(), temps_powers.iloc[:,0].to_numpy()
 
@@ -1651,11 +1654,11 @@ def plot_temp_power_dependencies(temps_powers):
 	plt.show()
 
 
-"""
-DEFUNCT
-Comparing rms of deviations with window size to figure out best window size for rolling means. 
-"""
-def compare_rms_with_window_size(noisy_filename1, noisy_header1, signal_filename2, signal_header2):
+def compare_rms_with_window_size(noisy_filename1, noisy_header1, signal_filename2, signal_header2):	
+	"""
+	DEFUNCT
+	Comparing rms of deviations with window size to figure out best window size for rolling means. 
+	"""
 	noise = reformat_df(noisy_filename1, noisy_header1)
 	signal = reformat_df(signal_filename2, signal_header2)
 	cut_noise, cut_signal = start_end_same_timestamp(noise, signal)
@@ -1687,16 +1690,16 @@ def compare_rms_with_window_size(noisy_filename1, noisy_header1, signal_filename
 	plt.show()
 
 
-"""
-Measure the phase shift between a noise function and a signal function. 
-
-Arguments:
-	noise_popt and signal_popt - (amp, period, translation, phi, m, k = popt) for the noise and signal
-
-Returns:
-	phase_shift - phase shift between noise and signal sinusoidal functions in seconds 
-"""
 def measure_phase_shift(noise_popt, signal_popt):
+	"""
+	Measure the phase shift between a noise function and a signal function. 
+	
+	Arguments:
+		noise_popt and signal_popt - (amp, period, translation, phi, m, k = popt) for the noise and signal
+	
+	Returns:
+		phase_shift - phase shift between noise and signal sinusoidal functions in seconds 
+	"""
 	x = np.arange(len(noise_popt))
 	n_amp, n_period, n_translation, n_phi, n_m, n_k = noise_popt
 	noise_fn = n_amp * np.sin(2 * np.pi/n_period * (x - n_phi)) + n_translation + n_m * x + n_k
@@ -1741,11 +1744,11 @@ def measure_phase_shift(noise_popt, signal_popt):
 	return phase_shift
 
 	
-"""
-DEFUNCT
-Measures the cross-correlation of two functions in a flat period (such as the initial temperature).
-"""
 def measure_cross_correlation(noise_df, noise_header, signal_df, signal_header):
+	"""
+	DEFUNCT
+	Measures the cross-correlation of two functions in a flat period (such as the initial temperature).
+	"""
 	noise_period, noise_peak_indices, noise_trough_indices = find_oscillation_freq(noise_df, noise_header)
 	if find_oscillation_freq(signal_df, signal_header) != []:
 		signal_period, signal_peak_indices, signal_trough_indices = find_oscillation_freq(signal_df, signal_header)
@@ -1793,17 +1796,17 @@ def measure_cross_correlation(noise_df, noise_header, signal_df, signal_header):
 		return lag, scaling_factor
 
 
-"""
-Defines a linear function y = ax+b
-"""
-def linear_fit(x, a, b):
+def linear_fit(x, a, b):	
+	"""
+	Defines a linear function y = ax+b
+	"""
 	return a*x + b
 
 
-"""
-Defines a parabolic function y = ax^2 + bx + c
-"""
-def parabolic_fit(x, a, b, c):
+def parabolic_fit(x, a, b, c):	
+	"""
+	Defines a parabolic function y = ax^2 + bx + c
+	"""
 	return a*(x**2) + b*x + c
 
 
@@ -1817,19 +1820,20 @@ ALPHA_ERRORS = [0.3, 0.2]
 K_VALUES = [22.2, 23.3] # mW/K
 K_ERRORS = [0.4, 0.5]
 
-"""
-Used to find the values of TEC resistance with alternating current (R_ac), the Seebeck coefficient (alpha),
-and conductance (K) given each of their paper values at 25 ºC and -35 ºC.
 
-Arguments:
-	at_25_and_neg35 (tuple) - value of coefficient at  25 ºC and -35 ºC
-	errors (tuple) - uncertainties associated with those values
-
-Returns:
-	a_opt (float) - sloope of linear fit
-	b_opt (float) - translation of linear fit
-"""
 def finding_coefficients(at_25_and_neg35, errors):
+	"""
+	Used to find the values of TEC resistance with alternating current (R_ac), the Seebeck coefficient (alpha),
+	and conductance (K) given each of their paper values at 25 ºC and -35 ºC.
+	
+	Arguments:
+		at_25_and_neg35 (tuple) - value of coefficient at  25 ºC and -35 ºC
+		errors (tuple) - uncertainties associated with those values
+	
+	Returns:
+		a_opt (float) - sloope of linear fit
+		b_opt (float) - translation of linear fit
+	"""
 	temperatures = np.array([25, -35])
 	popt, _ = curve_fit(linear_fit, temperatures, np.array(at_25_and_neg35), sigma=errors, absolute_sigma=True)
 	a_opt, b_opt = popt
@@ -1843,46 +1847,46 @@ def finding_coefficients(at_25_and_neg35, errors):
 	return a_opt, b_opt
 
 
-"""
-Finding the TEC resistance at a given temperature using the linear fit found with finding_coefficients().
-Arguments: T (float) - temperature
-Returns: approximate R_ac value at that temperature (in Ohms)
-"""
 def find_linear_R_ac(T):
+	"""
+	Finding the TEC resistance at a given temperature using the linear fit found with finding_coefficients().
+	Arguments: T (float) - temperature
+	Returns: approximate R_ac value at that temperature (in Ohms)
+	"""
 	return (0.01916666666666666 * T + 3.2508333333333335)
 
 
-"""
-Finding the TEC conductance at a given temperature using the linear fit found with finding_coefficients().
-Arguments: T (float) - temperature
-Returns: approximate K value at that temperature (in mW/K)
-"""
-def find_linear_K(T):
+def find_linear_K(T):	
+	"""
+	Finding the TEC conductance at a given temperature using the linear fit found with finding_coefficients().
+	Arguments: T (float) - temperature
+	Returns: approximate K value at that temperature (in mW/K)
+	"""
 	return (-0.018333333333333326 * T + 22.65833333333333)
 
 
-"""
-Finding the Seebeck coefficient at a given temperature using the linear fit found with finding_coefficients().
-Arguments: T (float) - temperature
-Returns: approximate alpha value at that temperature (in mV/K)
-"""
 def find_linear_alpha(T):
+	"""
+	Finding the Seebeck coefficient at a given temperature using the linear fit found with finding_coefficients().
+	Arguments: T (float) - temperature
+	Returns: approximate alpha value at that temperature (in mV/K)
+	"""
 	return (0.03999999999999998 * T + 13.700000000000001)
 
 
-"""
-Formula found in FEM thermoelectric modelling for bismuth telluride Seebeck coefficient 
-	- but doesn't work for the TECs as a whole.
-"""
-def paper_quad_alpha(T):
+def paper_quad_alpha(T):	
+	"""
+	Formula found in FEM thermoelectric modelling for bismuth telluride Seebeck coefficient 
+		- but doesn't work for the TECs as a whole.
+	"""
 	return (1.802 * 10**(-4) + 3.861 * 10**(-7) * T - 9.582 * 10**(-10) * T**2) * 1000
 
 
-"""
-Compares the Seebeck coefficients of TECs (from linear model) and just bismuth telluride (from quadratic model).
-Significant difference between linear and quadratic found. 
-"""
 def compare_linear_and_quad_alpha():
+	"""
+	Compares the Seebeck coefficients of TECs (from linear model) and just bismuth telluride (from quadratic model).
+	Significant difference between linear and quadratic found. 
+	"""
 	ts = np.arange(-50, 50)
 	linear_alphas = find_linear_alpha(ts)
 	print(f'lin: {linear_alphas}')
@@ -1898,13 +1902,13 @@ def compare_linear_and_quad_alpha():
 	plt.show()
 
 
-"""
-Use Peltier equation to predict K values of bismuth telluride:
-	k(T) = 1.758 - 5.290 * 10^13 T + 4.134 * 10 ^-5 T^2
-Returns: K(T) = kA/L
-	- Doesn't work for entire TEC, only for bismuth telluride.
-"""
 def paper_predicted_k(T):
+	"""
+	Use Peltier equation to predict K values of bismuth telluride:
+		k(T) = 1.758 - 5.290 * 10^13 T + 4.134 * 10 ^-5 T^2
+	Returns: K(T) = kA/L
+		- Doesn't work for entire TEC, only for bismuth telluride.
+	"""
 	k = 1.758 - 5.290 * 10**(13) * T + 4.134 * 10**(-5) * T**2
 	A = 0.003 * 0.004 	# m^2
 	L = 0.001			# m
@@ -1912,36 +1916,36 @@ def paper_predicted_k(T):
 	return K
 
 
-"""
-Returns the voltage in the TECs according to the formula V = alpha * dT + I * R_ac
-"""
 def voltage_fit(alpha, dT, R_ac, I):
+	"""
+	Returns the voltage in the TECs according to the formula V = alpha * dT + I * R_ac
+	"""
 	return (alpha * dT) + (R_ac * I)
 
 
-"""
-Returns the SiPM power (Qc) according to the formula:
-	Qc = (alpha * T_c * I) - (0.5 * (I ** 2) * R_ac) - (K_fit * dT)
-We consider K_fit = K_ev + K
-"""
 def qc_fit(alpha, I, T_c, R_ac, K_fit, dT):
+	"""
+	Returns the SiPM power (Qc) according to the formula:
+		Qc = (alpha * T_c * I) - (0.5 * (I ** 2) * R_ac) - (K_fit * dT)
+	We consider K_fit = K_ev + K
+	"""
 	return (alpha * T_c * I) - (0.5 * (I ** 2) * R_ac) - (K_fit * dT)
 
 
-"""
-Returns the Qc values that is derived thermally with the equation:
-	qc = h(ts - tinf) * 0.5 * surface area of LYSO crystals * no. of crystals per package
-		[h is the heat transfer coefficient]
-
-Arguments:
-	t_inf (array of floats) - ambient temperature over the period being considered
-	lyso_df and lyso_header - for LYSO temperature
-	h (int/float) - heat transfer coefficient
-
-Returns:
-	array of floats - Qc values in the time period of the DataFrame
-"""
 def predicted_qc_values(lyso_df, lyso_header, h, t_inf, step_start_ends):
+	"""
+	Returns the Qc values that is derived thermally with the equation:
+		qc = h(ts - tinf) * 0.5 * surface area of LYSO crystals * no. of crystals per package
+			[h is the heat transfer coefficient]
+	
+	Arguments:
+		t_inf (array of floats) - ambient temperature over the period being considered
+		lyso_df and lyso_header - for LYSO temperature
+		h (int/float) - heat transfer coefficient
+	
+	Returns:
+		array of floats - Qc values in the time period of the DataFrame
+	"""
 	# h = 10 			# heat transfer coefficient
 	sa = 0.058 * 0.003 		# one surface area of LYSO crystal
 	n = 16					# number of crystals per array
@@ -1969,18 +1973,18 @@ def predicted_qc_values(lyso_df, lyso_header, h, t_inf, step_start_ends):
 	return qcs
 
 
-"""
-Compares actual voltage to predicted voltage according to theory.
-
-Arguments:
-	dts_df (DataFrame) - output of find_dt_power()
-	elog_filename (str) - elog CSV file
-
-Returns:
-	voltage_df (DF) - predicted voltages, actual voltages, absolute errors, percentage errors
-		'pred_vs','actual_vs','abs_error','percent_error'
-"""
 def predicted_voltage_fit(dts_df, elog_filename):
+	"""
+	Compares actual voltage to predicted voltage according to theory.
+	
+	Arguments:
+		dts_df (DataFrame) - output of find_dt_power()
+		elog_filename (str) - elog CSV file
+	
+	Returns:
+		voltage_df (DF) - predicted voltages, actual voltages, absolute errors, percentage errors
+			'pred_vs','actual_vs','abs_error','percent_error'
+	"""
 	# because of the voltage being made of the thermovoltage and electric voltage, we know the thermovoltage
 	# must be positive (real) so we need the dts to be positive
 	dts = dts_df['wrt_cu_normalised'].to_numpy() 
@@ -2028,20 +2032,20 @@ def predicted_voltage_fit(dts_df, elog_filename):
 	return voltage_df
 
 
-"""
-Compares actual voltage to predicted voltage according to theory. dT can be calculated wrt Cu housing
-or cold plate.
-
-Arguments:
-	dts_df (DataFrame) - output of find_dt_power()
-	elog_filename (str) - elog CSV file
-	cu_bool (bool) - if true, calculates dt wrt cu; else calculates dt wrt plate
-
-Returns:
-	rac_df (DF) - predicted R_ac, actual R_ac, absolute errors, percentage errors
-		'pred_rac','actual_rac','abs_error','percent_error'
-"""
-def predicted_rac_values(dts_df, elog_filename, cu_bool):
+def predicted_rac_values(dts_df, elog_filename, cu_bool):	
+	"""
+	Compares actual voltage to predicted voltage according to theory. dT can be calculated wrt Cu housing
+	or cold plate.
+	
+	Arguments:
+		dts_df (DataFrame) - output of find_dt_power()
+		elog_filename (str) - elog CSV file
+		cu_bool (bool) - if true, calculates dt wrt cu; else calculates dt wrt plate
+	
+	Returns:
+		rac_df (DF) - predicted R_ac, actual R_ac, absolute errors, percentage errors
+			'pred_rac','actual_rac','abs_error','percent_error'
+	"""
 	if cu_bool:
 		dts = dts_df['wrt_cu_normalised'].to_numpy()
 		t =	dts_df['cu_housing_temps'].to_numpy()
@@ -2084,22 +2088,21 @@ def predicted_rac_values(dts_df, elog_filename, cu_bool):
 	return rac_df 
 
 
-
-"""
-Predicts the K_fit (= K + K_ev) value with the formula:
-	K_fit = [(alpha * I * T_c) - (0.5 * R_ac * I^2) - Q_c]/∆T
-
-Arguments:
-	dts_df (DataFrame) - output of find_dt_power()
-	elog_filename (str) - elog CSV file
-	qc (float) [optional] - SiPM load in Watts; default value 480 mW/SiPM array
-	rac_cu (float) [optional] - TEC resistance using dT wrt Cu housing; default uses find_linear_R_ac()
-	rac_plate (float) [optional] - TEC resistance using dT wrt cold plate; default uses find_linear_R_ac()
-
-Returns:
-	k_fit_df (DF) - 'k_fit_wrt_cu', 'k_fit_wrt_plate'
-"""
-def predicted_kfit(dts_df, elog_filename, qc=0.480, rac_cu=None, rac_plate=None):
+def predicted_kfit(dts_df, elog_filename, qc=0.480, rac_cu=None, rac_plate=None):	
+	"""
+	Predicts the K_fit (= K + K_ev) value with the formula:
+		K_fit = [(alpha * I * T_c) - (0.5 * R_ac * I^2) - Q_c]/∆T
+	
+	Arguments:
+		dts_df (DataFrame) - output of find_dt_power()
+		elog_filename (str) - elog CSV file
+		qc (float) [optional] - SiPM load in Watts; default value 480 mW/SiPM array
+		rac_cu (float) [optional] - TEC resistance using dT wrt Cu housing; default uses find_linear_R_ac()
+		rac_plate (float) [optional] - TEC resistance using dT wrt cold plate; default uses find_linear_R_ac()
+	
+	Returns:
+		k_fit_df (DF) - 'k_fit_wrt_cu', 'k_fit_wrt_plate'
+	"""
 	dts_wrt_cu = dts_df['wrt_cu_normalised'].to_numpy()
 	dts_wrt_plate = dts_df['wrt_plate_normalised'].to_numpy()
 
@@ -2167,17 +2170,17 @@ def predicted_kfit(dts_df, elog_filename, qc=0.480, rac_cu=None, rac_plate=None)
 	return round(k_fit_df, 2)
 
 
-"""
-More comprehensive Q_c used where Q_c = Q_SiPM + Q_ambient + Q_electronics
-Q_SiPM is power injected into each SiPM array = total SiPM power/4 * num_modules
-Q_ambient is calculated as the thermoelectric power derived from the temperature gradient between the LYSO and environment
-Q_electronics is FE power per SiPM array = (TOFHIRs + ALDOs powers)/4 * num_modules  
-
-Otherwise works with same formula as predicted_kfit(). 
-
-Compares the calculated K, K_ev, and K_fit values with Arjan's paper values. 
-"""
 def better_predicted_kfit(dts_df, elog_filename, lyso_df, lyso_header, t_inf_df, t_inf_header, step_start_ends, qc=-0.480, rac_cu=None, rac_plate=None, q_elec=-0.806):
+	"""
+	More comprehensive Q_c used where Q_c = Q_SiPM + Q_ambient + Q_electronics
+	Q_SiPM is power injected into each SiPM array = total SiPM power/4 * num_modules
+	Q_ambient is calculated as the thermoelectric power derived from the temperature gradient between the LYSO and environment
+	Q_electronics is FE power per SiPM array = (TOFHIRs + ALDOs powers)/4 * num_modules  
+	
+	Otherwise works with same formula as predicted_kfit(). 
+	
+	Compares the calculated K, K_ev, and K_fit values with Arjan's paper values. 
+	"""
 	dts_wrt_cu = dts_df['wrt_cu_normalised'].to_numpy()[1:]
 	dts_wrt_plate = dts_df['wrt_plate_normalised'].to_numpy()[1:]
 
@@ -2301,12 +2304,12 @@ def better_predicted_kfit(dts_df, elog_filename, lyso_df, lyso_header, t_inf_df,
 	return round(k_fit_df, 4)
 
 
-"""
-DEFUNCT
-Not entirely accurate
-Using paper values to test the theory.
-"""
-def check_theory():
+def check_theory():	
+	"""
+	DEFUNCT
+	Not entirely accurate
+	Using paper values to test the theory.
+	"""
 # from the paper we know some information at -35 ºC:
 	# 𝑅_𝑎𝑐 [Ω]= 2.58 ± 0.05
 	# 𝛼 [mV/K] = 12.3 ± 0.2
@@ -2327,11 +2330,11 @@ def check_theory():
 	print(f'Qc fit: {qc_fit(alpha, I, T_c, R_ac, (K+K_ev), dT)}')
 
 
-"""
-DEFUNCT
-Checking accuracy of voltage fit.
-"""
-def check_voltage_fit():
+def check_voltage_fit():	
+	"""
+	DEFUNCT
+	Checking accuracy of voltage fit.
+	"""
 # this dt was with respect to the micro-heaters actually
 	# dts = np.array([6.313086, 8.720202, 11.336297, 13.96601, 16.042038, 17.665252, 19.240934]) 	# Th = plate
 	dts = np.array([0, 2.407116, 5.023211, 7.652924, 9.728952, 11.352166, 12.927848])						# Th = module first temp
@@ -2356,11 +2359,11 @@ def check_voltage_fit():
 	return copper_housing_pred_vs, pred_vs
 
 
-"""
-DEFUNCT
-Checking accuracy of power fit.
-"""
-def check_power_fit():
+def check_power_fit():	
+	"""
+	DEFUNCT
+	Checking accuracy of power fit.
+	"""
 	# dts = np.array([6.313086, 8.720202, 11.336297, 13.96601, 16.042038, 17.665252, 19.240934]) 	# Th = plate
 	dts = np.array([0, 2.407116, 5.023211, 7.652924, 9.728952, 11.352166, 12.927848])						# Th = module first temp
 	# cu_corrected_dts = np.array([3.5, 5.907116, 8.523211, 11.152924, 13.228952, 14.852166, 16.427848])
@@ -2384,11 +2387,11 @@ def check_power_fit():
 	return actual_powers
 
 
-"""
-DEFUNCT
-Checking accuracy of K_fit fit.
-"""
-def get_kfit_value():
+def get_kfit_value():	
+	"""
+	DEFUNCT
+	Checking accuracy of K_fit fit.
+	"""
 	# dts = np.array([6.313086, 8.720202, 11.336297, 13.96601, 16.042038, 17.665252, 19.240934]) 	# Th = plate
 	dts = np.array([0, 2.407116, 5.023211, 7.652924, 9.728952, 11.352166, 12.927848])						# Th = module first temp
 	# cu_corrected_dts = np.array([3.5, 5.907116, 8.523211, 11.152924, 13.228952, 14.852166, 16.427848])
@@ -2414,11 +2417,11 @@ def get_kfit_value():
 	return K_fit, cu_corrected_k_fit
 
 
-"""
-DEFUNCT
-Checking accuracy of K_fit fit by plotting against TEC power and comparing with plot in the paper. 
-"""
-def kfit_vs_TEC_power():
+def kfit_vs_TEC_power():	
+	"""
+	DEFUNCT
+	Checking accuracy of K_fit fit by plotting against TEC power and comparing with plot in the paper. 
+	"""
 	k_fit, cu_corrected_k_fit = get_kfit_value()
 	actual_TEC_powers = check_power_fit()
 	plt.plot(k_fit, actual_TEC_powers, label='K_fit with TEC power')
